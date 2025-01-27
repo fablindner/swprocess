@@ -656,6 +656,19 @@ class Array1D():
             warnings.simplefilter("ignore")
             stream = obspy.read(str(fnames[0]), **obspy_read_kwargs)
 
+        # Adapt traces for MSEED case coming from dascorr package (DAS cross-correlations)
+        if stream[0].stats._format == "MSEED":
+            warnings.warn("MSEED format detected, assuming DAS cross-correlation traces from package 'dascorr'.")
+            for tr in stream.select(location="0"):
+                vsrc = tr.stats.station
+                stream.remove(tr)
+            dx = 2.04
+            dd = np.arange(len(stream)) * dx
+            if "TIST" or "GIPL" in vsrc:
+                stream = stream[::-1]
+            for i, tr in enumerate(stream):
+                tr.stats.distance = dd[i]
+
         # Create array of sensors
         sensors = []
         for trace in stream.traces:
@@ -715,6 +728,10 @@ class Array1D():
                 y = round(y, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
                 return Source(x=map_x(x), y=map_y(y), z=0)
+
+        elif _format == "MSEED":
+            def parse_source(stats):
+                return Source(x=-dx, y=0, z=0) # hard coded for now
 
         source = parse_source(trace.stats)
         obj = cls(sensors, source)

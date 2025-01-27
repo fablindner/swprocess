@@ -126,6 +126,8 @@ class Sensor1C(ActiveTimeSeries):
                 return cls._from_trace_su(trace, map_x=map_x, map_y=map_y)
             elif _format == "SEGY":
                 return cls._from_trace_segy(trace, map_x=map_x, map_y=map_y)
+            elif _format == "MSEED":
+                return cls._from_trace_mseed(trace, map_x=map_x, map_y=map_y)
             else:
                 raise NotImplementedError
         else:
@@ -269,6 +271,35 @@ class Sensor1C(ActiveTimeSeries):
                               delay=cls._safely_get_header(header, "delay_recording_time", 0, int)/1000,
                               x=map_x(x),
                               y=map_y(y),
+                              z=0)
+
+    @classmethod
+    def _from_trace_mseed(cls, trace, map_x=lambda x: x, map_y=lambda y: y):
+        """Create a `Sensor1C` object form a miniseed-style `Trace` object.
+
+        Parameters
+        ----------
+        trace : Trace
+            miniseed-style Trace with header information entered correctly.
+        map_x, map_y : function, optional
+            Convert x and y coordinates using some function, default
+            is not transformation. Can be useful for converting between
+            coordinate systems.
+
+        Returns
+        -------
+        Sensor1C
+            An initialized `Sensor1C` object.
+
+        """
+        header = trace.stats.mseed
+
+        return cls.from_trace(trace,
+                              read_header=False,
+                              nstacks=1,
+                              delay=0.,
+                              x=trace.stats.distance,
+                              y=0,
                               z=0)
 
     def _is_similar(self, other, exclude=None):
